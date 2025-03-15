@@ -21,17 +21,85 @@
             max-width: 100%;
             margin-top: 20px;
         }
+        .loading {
+            display: none; /* Hide loading spinner by default */
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Passport Photo Editor</h1>
         <p>Upload your photo to remove the background and replace it with white.</p>
-        <form method="POST" enctype="multipart/form-data">
+        <form id="uploadForm" method="POST" enctype="multipart/form-data">
             <input type="file" name="file" accept="image/*" required>
             <br>
             <button type="submit">Process Photo</button>
         </form>
+
+        <!-- Loading spinner -->
+        <div class="loading" id="loadingSpinner">
+            <p>Processing your photo... Please wait.</p>
+        </div>
+
+        <!-- Display processed image -->
+        <div id="resultContainer" style="display: none;">
+            <h2>Processed Photo</h2>
+            <img id="processedImage" src="" alt="Processed Photo">
+            <br>
+            <a id="downloadLink" href="#" download="processed_photo.png">Download Processed Photo</a>
+        </div>
     </div>
+
+    <script>
+        // Handle form submission
+        document.getElementById("uploadForm").addEventListener("submit", async function (event) {
+            event.preventDefault(); // Prevent default form submission
+
+            // Show loading spinner
+            document.getElementById("loadingSpinner").style.display = "block";
+
+            // Get the file from the form
+            const fileInput = document.querySelector('input[type="file"]');
+            const file = fileInput.files[0];
+
+            // Create a FormData object
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+                // Send the file to the server for processing
+                const response = await fetch("/", {
+                    method: "POST",
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    throw new Error("Failed to process the photo.");
+                }
+
+                // Get the processed image as a blob
+                const blob = await response.blob();
+                const imageUrl = URL.createObjectURL(blob);
+
+                // Display the processed image
+                const processedImage = document.getElementById("processedImage");
+                processedImage.src = imageUrl;
+
+                // Show the result container
+                document.getElementById("resultContainer").style.display = "block";
+
+                // Set the download link
+                const downloadLink = document.getElementById("downloadLink");
+                downloadLink.href = imageUrl;
+            } catch (error) {
+                console.error("Error:", error);
+                alert("An error occurred while processing the photo. Please try again.");
+            } finally {
+                // Hide loading spinner
+                document.getElementById("loadingSpinner").style.display = "none";
+            }
+        });
+    </script>
 </body>
 </html>
