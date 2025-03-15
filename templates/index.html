@@ -25,6 +25,10 @@
             display: none; /* Hide loading spinner by default */
             margin-top: 20px;
         }
+        .error {
+            color: red;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -42,6 +46,11 @@
             <p>Processing your photo... Please wait.</p>
         </div>
 
+        <!-- Error message -->
+        <div class="error" id="errorMessage" style="display: none;">
+            <p>An error occurred while processing the photo. Please try again.</p>
+        </div>
+
         <!-- Display processed image -->
         <div id="resultContainer" style="display: none;">
             <h2>Processed Photo</h2>
@@ -56,8 +65,10 @@
         document.getElementById("uploadForm").addEventListener("submit", async function (event) {
             event.preventDefault(); // Prevent default form submission
 
-            // Show loading spinner
+            // Show loading spinner and hide error message
             document.getElementById("loadingSpinner").style.display = "block";
+            document.getElementById("errorMessage").style.display = "none";
+            document.getElementById("resultContainer").style.display = "none";
 
             // Get the file from the form
             const fileInput = document.querySelector('input[type="file"]');
@@ -94,7 +105,8 @@
                 downloadLink.href = imageUrl;
             } catch (error) {
                 console.error("Error:", error);
-                alert("An error occurred while processing the photo. Please try again.");
+                // Show error message
+                document.getElementById("errorMessage").style.display = "block";
             } finally {
                 // Hide loading spinner
                 document.getElementById("loadingSpinner").style.display = "none";
