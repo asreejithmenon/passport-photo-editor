@@ -28,7 +28,12 @@ def index():
         white_bg.save(img_byte_arr, format="PNG")
         img_byte_arr.seek(0)
 
-        return send_file(img_byte_arr, mimetype="image/png")
+        # Return the processed image as a response
+        return send_file(
+            img_byte_arr,
+            mimetype="image/png",
+            as_attachment=False,  # Set to False to display the image in the browser
+        )
 
     return render_template("index.html")
 
