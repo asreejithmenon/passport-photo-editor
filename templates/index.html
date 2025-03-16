@@ -73,6 +73,7 @@
             font-size: 16px;
             cursor: pointer;
             transition: background-color 0.3s ease;
+            margin-top: 20px;
         }
 
         button:hover {
@@ -132,7 +133,14 @@
             background-color: #0056b3;
         }
 
-        /* Venmo Donation Button */
+        /* Donation Note */
+        .donation-note {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666666;
+        }
+
+        /* Stripe Donation Button */
         .donation-buttons {
             margin-top: 20px;
         }
@@ -147,13 +155,13 @@
             transition: background-color 0.3s ease;
         }
 
-        .donation-buttons .venmo {
-            background-color: #3d95ce;
+        .donation-buttons .stripe {
+            background-color: #635bff;
             color: #ffffff;
         }
 
-        .donation-buttons .venmo:hover {
-            background-color: #2c7aaf;
+        .donation-buttons .stripe:hover {
+            background-color: #4a43d1;
         }
     </style>
 </head>
@@ -168,8 +176,8 @@
             <label for="fileInput">Choose a Photo</label>
         </div>
 
-        <!-- Process Button -->
-        <button type="submit" id="processButton">Process Photo</button>
+        <!-- Upload and Process Button -->
+        <button type="submit" id="processButton">Upload and Process Photo</button>
 
         <!-- Loading Spinner -->
         <div class="loading" id="loadingSpinner">
@@ -193,10 +201,14 @@
             <br>
             <a id="downloadLink" href="#" download="processed_photo.png">Download Processed Photo</a>
 
-            <!-- Venmo Donation Button -->
+            <!-- Donation Note -->
+            <div class="donation-note">
+                <p>You can download the photo for free, but we would appreciate a <strong>50 cents donation</strong> to keep the website up and running to help other members.</p>
+            </div>
+
+            <!-- Stripe Donation Button -->
             <div class="donation-buttons">
-                <p>If you found this tool helpful, consider supporting us:</p>
-                <a href="https://venmo.com/Sreejith-Menon" class="venmo" target="_blank">Donate via Venmo</a>
+                <a href="https://buy.stripe.com/28o8Ag7KGcZ76ZyaEE" class="stripe" target="_blank">Donate $0.50 via Stripe</a>
             </div>
         </div>
     </div>
