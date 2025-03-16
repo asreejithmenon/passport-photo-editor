@@ -15,18 +15,26 @@ def index():
     if request.method == "POST":
         try:
             if "file" not in request.files:
+                logging.error("No file uploaded")
                 return "No file uploaded", 400
             file = request.files["file"]
             if file.filename == "":
+                logging.error("No file selected")
                 return "No file selected", 400
+
+            logging.info("File received, starting image processing")
 
             # Process the image
             input_image = Image.open(file.stream)
             output_image = remove(input_image)
 
+            logging.info("Background removed, converting to white background")
+
             # Convert to white background
             white_bg = Image.new("RGB", output_image.size, (255, 255, 255))
             white_bg.paste(output_image, mask=output_image.split()[-1])
+
+            logging.info("Image processed, preparing response")
 
             # Save the image to a bytes buffer
             img_byte_arr = io.BytesIO()
