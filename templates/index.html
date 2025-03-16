@@ -36,7 +36,7 @@
         <h1>Passport Photo Editor</h1>
         <p>Upload your photo to remove the background and replace it with white.</p>
         <form id="uploadForm" method="POST" enctype="multipart/form-data">
-            <input type="file" name="file" accept="image/*" required>
+            <input type="file" name="file" accept="image/*" required onchange="validateFileSize(this)">
             <br>
             <button type="submit">Process Photo</button>
         </form>
@@ -61,6 +61,15 @@
     </div>
 
     <script>
+        // Validate file size (max 5 MB)
+        function validateFileSize(input) {
+            const maxSize = 5 * 1024 * 1024; // 5 MB
+            if (input.files[0].size > maxSize) {
+                alert("File size must be less than 5 MB.");
+                input.value = ""; // Clear the file input
+            }
+        }
+
         // Handle form submission
         document.getElementById("uploadForm").addEventListener("submit", async function (event) {
             event.preventDefault(); // Prevent default form submission
@@ -74,6 +83,15 @@
             const fileInput = document.querySelector('input[type="file"]');
             const file = fileInput.files[0];
 
+            // Validate file size again (in case the user bypassed the frontend validation)
+            const maxSize = 5 * 1024 * 1024; // 5 MB
+            if (file.size > maxSize) {
+                document.getElementById("errorMessage").innerText = "File size must be less than 5 MB.";
+                document.getElementById("errorMessage").style.display = "block";
+                document.getElementById("loadingSpinner").style.display = "none";
+                return;
+            }
+
             // Create a FormData object
             const formData = new FormData();
             formData.append("file", file);
@@ -83,6 +101,7 @@
                 const response = await fetch("/", {
                     method: "POST",
                     body: formData,
+                    signal: AbortSignal.timeout(30000), // 30-second timeout
                 });
 
                 if (!response.ok) {
@@ -107,7 +126,7 @@
             } catch (error) {
                 console.error("Error:", error);
                 // Show error message
-                document.getElementById("errorMessage").innerText = error.message; // Display the actual error
+                document.getElementById("errorMessage").innerText = error.message || "An error occurred. Please try again.";
                 document.getElementById("errorMessage").style.display = "block";
             } finally {
                 // Hide loading spinner
