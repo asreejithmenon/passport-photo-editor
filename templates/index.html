@@ -116,12 +116,14 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
 
-        /* Download Link Styling */
-        #downloadLink {
-            display: inline-block;
+        /* Download Links Styling */
+        .download-links {
             margin-top: 20px;
-            background-color: #007bff;
-            color: #ffffff;
+        }
+
+        .download-links a {
+            display: inline-block;
+            margin: 10px;
             padding: 12px 24px;
             border-radius: 5px;
             text-decoration: none;
@@ -129,8 +131,22 @@
             transition: background-color 0.3s ease;
         }
 
-        #downloadLink:hover {
+        .download-links .single-photo {
+            background-color: #007bff;
+            color: #ffffff;
+        }
+
+        .download-links .single-photo:hover {
             background-color: #0056b3;
+        }
+
+        .download-links .four-photos {
+            background-color: #28a745;
+            color: #ffffff;
+        }
+
+        .download-links .four-photos:hover {
+            background-color: #218838;
         }
 
         /* Donation Note */
@@ -191,7 +207,7 @@
 
         <!-- Success Message -->
         <div class="success" id="successMessage">
-            <p>Photo processed successfully! Download your image below.</p>
+            <p>Photo processed successfully! Download your images below.</p>
         </div>
 
         <!-- Display Processed Image -->
@@ -199,11 +215,16 @@
             <h2>Processed Photo</h2>
             <img id="processedImage" src="" alt="Processed Photo">
             <br>
-            <a id="downloadLink" href="#" download="processed_photo.png">Download Processed Photo</a>
+
+            <!-- Download Links -->
+            <div class="download-links">
+                <a id="downloadSingle" href="#" download="2x2_passport_photo.png" class="single-photo">Download Single 2x2 Photo</a>
+                <a id="downloadFour" href="#" download="4x6_page.png" class="four-photos">Download 4x6 Page with Four 2x2 Photos</a>
+            </div>
 
             <!-- Donation Note -->
             <div class="donation-note">
-                <p>You can download the photo for free, but we would appreciate a <strong>50 cents donation</strong> to keep the website up and running to help other members.</p>
+                <p>You can download the photos for free, but we would appreciate a <strong>50 cents donation</strong> to keep the website up and running to help other members.</p>
             </div>
 
             <!-- Stripe Donation Button -->
@@ -271,13 +292,15 @@
                 const processedImage = document.getElementById("processedImage");
                 processedImage.src = imageUrl;
 
+                // Set the download links
+                const downloadSingle = document.getElementById("downloadSingle");
+                const downloadFour = document.getElementById("downloadFour");
+                downloadSingle.href = imageUrl;
+                downloadFour.href = imageUrl;
+
                 // Show the result container and success message
                 document.getElementById("resultContainer").style.display = "block";
                 document.getElementById("successMessage").style.display = "block";
-
-                // Set the download link
-                const downloadLink = document.getElementById("downloadLink");
-                downloadLink.href = imageUrl;
             } catch (error) {
                 console.error("Error:", error);
                 // Show error message
