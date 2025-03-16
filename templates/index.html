@@ -86,7 +86,8 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error("Failed to process the photo.");
+                    const errorText = await response.text(); // Get the error message from the server
+                    throw new Error(`Server error: ${errorText}`);
                 }
 
                 // Get the processed image as a blob
@@ -106,6 +107,7 @@
             } catch (error) {
                 console.error("Error:", error);
                 // Show error message
+                document.getElementById("errorMessage").innerText = error.message; // Display the actual error
                 document.getElementById("errorMessage").style.display = "block";
             } finally {
                 // Hide loading spinner
