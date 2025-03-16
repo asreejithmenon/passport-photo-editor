@@ -1,9 +1,9 @@
-from flask import Flask, request, send_file, render_template
+import os
+from flask import Flask, request, render_template, send_file
 from rembg import remove
 from PIL import Image
 import io
 import logging
-import os
 
 app = Flask(__name__)
 
@@ -39,8 +39,8 @@ def index():
             input_image = Image.open(file.stream)
             input_image = resize_image(input_image)
 
-            # Remove background
-            output_image = remove(input_image)
+            # Remove background using a smaller model (u2netp)
+            output_image = remove(input_image, model_name="u2netp")
 
             # Convert to white background
             white_bg = Image.new("RGB", output_image.size, (255, 255, 255))
@@ -50,6 +50,9 @@ def index():
             img_byte_arr = io.BytesIO()
             white_bg.save(img_byte_arr, format="PNG")
             img_byte_arr.seek(0)
+
+            # Clear memory
+            del input_image, output_image, white_bg
 
             # Return the processed image
             return send_file(img_byte_arr, mimetype="image/png")
