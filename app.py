@@ -1,6 +1,6 @@
 import os
 from flask import Flask, request, send_file, render_template
-from PIL import Image
+from PIL import Image, ImageResampling
 import io
 import logging
 
@@ -41,7 +41,7 @@ def resize_and_crop(image, target_size):
         bottom = (height + new_height) / 2
 
     image = image.crop((left, top, right, bottom))
-    image = image.resize(target_size, Image.ANTIALIAS)
+    image = image.resize(target_size, Image.Resampling.LANCZOS)  # Use LANCZOS instead of ANTIALIAS
     return image
 
 def create_4x6_page(image):
