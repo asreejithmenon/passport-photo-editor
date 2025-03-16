@@ -3,72 +3,201 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Passport Photo Editor</title>
+    <title>US Passport Photo Editor</title>
     <style>
+        /* General Styles */
         body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin-top: 50px;
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
         }
+
         .container {
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 30px;
             max-width: 500px;
-            margin: 0 auto;
+            width: 100%;
+            text-align: center;
         }
-        input[type="file"] {
+
+        h1 {
+            font-size: 28px;
+            color: #333333;
             margin-bottom: 20px;
         }
-        img {
-            max-width: 100%;
-            margin-top: 20px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 5px;
+
+        p {
+            font-size: 16px;
+            color: #666666;
+            margin-bottom: 30px;
         }
+
+        /* File Input Styling */
+        .file-input {
+            margin-bottom: 20px;
+        }
+
+        .file-input input[type="file"] {
+            display: none;
+        }
+
+        .file-input label {
+            display: inline-block;
+            background-color: #007bff;
+            color: #ffffff;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        .file-input label:hover {
+            background-color: #0056b3;
+        }
+
+        /* Button Styling */
+        button {
+            background-color: #28a745;
+            color: #ffffff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        /* Loading Spinner */
         .loading {
-            display: none; /* Hide loading spinner by default */
+            display: none;
             margin-top: 20px;
+            font-size: 16px;
+            color: #333333;
         }
+
+        /* Error Message */
         .error {
-            color: red;
+            display: none;
+            margin-top: 20px;
+            font-size: 16px;
+            color: #dc3545;
+        }
+
+        /* Success Message */
+        .success {
+            display: none;
+            margin-top: 20px;
+            font-size: 16px;
+            color: #28a745;
+        }
+
+        /* Processed Image Styling */
+        #resultContainer {
+            display: none;
+            margin-top: 30px;
+        }
+
+        #processedImage {
+            max-width: 100%;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Download Link Styling */
+        #downloadLink {
+            display: inline-block;
+            margin-top: 20px;
+            background-color: #007bff;
+            color: #ffffff;
+            padding: 12px 24px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        #downloadLink:hover {
+            background-color: #0056b3;
+        }
+
+        /* Venmo Donation Button */
+        .donation-buttons {
             margin-top: 20px;
         }
-        .success {
-            color: green;
-            margin-top: 20px;
+
+        .donation-buttons a {
+            display: inline-block;
+            margin: 10px;
+            padding: 12px 24px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        .donation-buttons .venmo {
+            background-color: #3d95ce;
+            color: #ffffff;
+        }
+
+        .donation-buttons .venmo:hover {
+            background-color: #2c7aaf;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Passport Photo Editor</h1>
-        <p>Upload your photo to remove the background and replace it with white.</p>
-        <form id="uploadForm" method="POST" enctype="multipart/form-data">
-            <input type="file" name="file" accept="image/*" required onchange="validateFileSize(this)">
-            <br>
-            <button type="submit">Process Photo</button>
-        </form>
+        <h1>US Passport Photo Editor</h1>
+        <p>Upload your photo to remove the background and replace it with white, ensuring it meets US passport requirements.</p>
 
-        <!-- Loading spinner -->
+        <!-- File Input -->
+        <div class="file-input">
+            <input type="file" name="file" id="fileInput" accept="image/*" required onchange="validateFileSize(this)">
+            <label for="fileInput">Choose a Photo</label>
+        </div>
+
+        <!-- Process Button -->
+        <button type="submit" id="processButton">Process Photo</button>
+
+        <!-- Loading Spinner -->
         <div class="loading" id="loadingSpinner">
             <p>Processing your photo... Please wait.</p>
         </div>
 
-        <!-- Error message -->
-        <div class="error" id="errorMessage" style="display: none;">
+        <!-- Error Message -->
+        <div class="error" id="errorMessage">
             <p>An error occurred while processing the photo. Please try again.</p>
         </div>
 
-        <!-- Success message -->
-        <div class="success" id="successMessage" style="display: none;">
+        <!-- Success Message -->
+        <div class="success" id="successMessage">
             <p>Photo processed successfully! Download your image below.</p>
         </div>
 
-        <!-- Display processed image -->
-        <div id="resultContainer" style="display: none;">
+        <!-- Display Processed Image -->
+        <div id="resultContainer">
             <h2>Processed Photo</h2>
             <img id="processedImage" src="" alt="Processed Photo">
             <br>
             <a id="downloadLink" href="#" download="processed_photo.png">Download Processed Photo</a>
+
+            <!-- Venmo Donation Button -->
+            <div class="donation-buttons">
+                <p>If you found this tool helpful, consider supporting us:</p>
+                <a href="https://venmo.com/Sreejith-Menon" class="venmo" target="_blank">Donate via Venmo</a>
+            </div>
         </div>
     </div>
 
@@ -83,7 +212,7 @@
         }
 
         // Handle form submission
-        document.getElementById("uploadForm").addEventListener("submit", async function (event) {
+        document.getElementById("processButton").addEventListener("click", async function (event) {
             event.preventDefault(); // Prevent default form submission
 
             // Show loading spinner and hide error/success messages
@@ -92,8 +221,8 @@
             document.getElementById("successMessage").style.display = "none";
             document.getElementById("resultContainer").style.display = "none";
 
-            // Get the file from the form
-            const fileInput = document.querySelector('input[type="file"]');
+            // Get the file from the input
+            const fileInput = document.getElementById("fileInput");
             const file = fileInput.files[0];
 
             // Validate file size again (in case the user bypassed the frontend validation)
