@@ -20,6 +20,9 @@
         img {
             max-width: 100%;
             margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px;
         }
         .loading {
             display: none; /* Hide loading spinner by default */
@@ -27,6 +30,10 @@
         }
         .error {
             color: red;
+            margin-top: 20px;
+        }
+        .success {
+            color: green;
             margin-top: 20px;
         }
     </style>
@@ -49,6 +56,11 @@
         <!-- Error message -->
         <div class="error" id="errorMessage" style="display: none;">
             <p>An error occurred while processing the photo. Please try again.</p>
+        </div>
+
+        <!-- Success message -->
+        <div class="success" id="successMessage" style="display: none;">
+            <p>Photo processed successfully! Download your image below.</p>
         </div>
 
         <!-- Display processed image -->
@@ -74,9 +86,10 @@
         document.getElementById("uploadForm").addEventListener("submit", async function (event) {
             event.preventDefault(); // Prevent default form submission
 
-            // Show loading spinner and hide error message
+            // Show loading spinner and hide error/success messages
             document.getElementById("loadingSpinner").style.display = "block";
             document.getElementById("errorMessage").style.display = "none";
+            document.getElementById("successMessage").style.display = "none";
             document.getElementById("resultContainer").style.display = "none";
 
             // Get the file from the form
@@ -117,8 +130,9 @@
                 const processedImage = document.getElementById("processedImage");
                 processedImage.src = imageUrl;
 
-                // Show the result container
+                // Show the result container and success message
                 document.getElementById("resultContainer").style.display = "block";
+                document.getElementById("successMessage").style.display = "block";
 
                 // Set the download link
                 const downloadLink = document.getElementById("downloadLink");
