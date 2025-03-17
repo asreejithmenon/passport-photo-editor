@@ -1,14 +1,18 @@
 import os
 from flask import Flask, request, send_file, render_template
-from rembg import remove
 from PIL import Image
 import io
 import logging
+import requests
 
 app = Flask(__name__)
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
+
+# Remove.bg API endpoint and key
+REMOVE_BG_API_URL = "https://api.remove.bg/v1.0/removebg"
+REMOVE_BG_API_KEY = "LpCckzHHasLpTMwYmj1r6uHj"  # Your Remove.bg API key
 
 # Constants for photo sizes
 PASSPORT_SIZE = (600, 600)  # 2x2 inches at 300 DPI
@@ -20,6 +24,24 @@ try:
     RESAMPLING_FILTER = ImageResampling.LANCZOS
 except ImportError:
     RESAMPLING_FILTER = Image.ANTIALIAS  # Fallback for older Pillow versions
+
+def remove_background(image_stream):
+    """Remove the background using the Remove.bg API."""
+    try:
+        response = requests.post(
+            REMOVE_BG_API_URL,
+            files={"image_file": image_stream},
+            headers={"X-Api-Key": REMOVE_BG_API_KEY},
+        )
+        if response.status_code == 200:
+            return Image.open(io.BytesIO(response.content))
+        elif response.status_code == 402:
+            raise Exception("API limit reached. Please upgrade your Remove.bg plan.")
+        else:
+            raise Exception(f"Remove.bg API error: {response.text}")
+    except Exception as e:
+        logging.error(f"Error calling Remove.bg API: {e}")
+        raise
 
 def resize_and_crop(image, max_size=1024):
     """Resize the image to a maximum dimension while maintaining aspect ratio."""
@@ -59,16 +81,15 @@ def index():
 
             logging.info("File received, starting image processing")
 
-            # Open and resize the image
-            input_image = Image.open(file.stream)
-            input_image = resize_and_crop(input_image)
+            # Remove background using Remove.bg API
+            output_image = remove_background(file.stream)
 
-            # Remove background using a smaller model (u2netp)
-            output_image = remove(input_image, model_name="u2netp")
+            # Resize and crop to 2x2 passport size
+            passport_photo = resize_and_crop(output_image)
 
             # Convert to white background
-            white_bg = Image.new("RGB", output_image.size, (255, 255, 255))
-            white_bg.paste(output_image, mask=output_image.split()[-1])
+            white_bg = Image.new("RGB", passport_photo.size, (255, 255, 255))
+            white_bg.paste(passport_photo, mask=passport_photo.split()[-1])
 
             # Create a 4x6 page with four 2x2 photos
             page_4x6 = create_4x6_page(white_bg)
@@ -83,7 +104,7 @@ def index():
             page_bytes.seek(0)
 
             # Clear memory
-            del input_image, output_image, white_bg, page_4x6
+            del output_image, passport_photo, white_bg, page_4x6
 
             # Return the processed images as a zip file
             return send_file(
