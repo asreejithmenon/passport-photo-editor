@@ -1,6 +1,7 @@
 import os
 from flask import Flask, request, send_file, render_template
-from PIL import Image, ImageResampling
+from rembg import remove
+from PIL import Image
 import io
 import logging
 
@@ -13,35 +14,24 @@ logging.basicConfig(level=logging.DEBUG)
 PASSPORT_SIZE = (600, 600)  # 2x2 inches at 300 DPI
 PAGE_SIZE = (1800, 1200)    # 4x6 inches at 300 DPI
 
-def resize_and_crop(image, target_size):
-    """Resize and crop the image to fit the target size."""
+# Backward compatibility for Pillow
+try:
+    from PIL import ImageResampling
+    RESAMPLING_FILTER = ImageResampling.LANCZOS
+except ImportError:
+    RESAMPLING_FILTER = Image.ANTIALIAS  # Fallback for older Pillow versions
+
+def resize_and_crop(image, max_size=1024):
+    """Resize the image to a maximum dimension while maintaining aspect ratio."""
     width, height = image.size
-    target_width, target_height = target_size
-
-    # Calculate aspect ratio
-    target_ratio = target_width / target_height
-    image_ratio = width / height
-
-    # Resize and crop
-    if image_ratio > target_ratio:
-        # Crop horizontally
-        new_height = height
-        new_width = int(height * target_ratio)
-        left = (width - new_width) / 2
-        top = 0
-        right = (width + new_width) / 2
-        bottom = height
-    else:
-        # Crop vertically
-        new_width = width
-        new_height = int(width / target_ratio)
-        left = 0
-        top = (height - new_height) / 2
-        right = width
-        bottom = (height + new_height) / 2
-
-    image = image.crop((left, top, right, bottom))
-    image = image.resize(target_size, Image.Resampling.LANCZOS)  # Use LANCZOS instead of ANTIALIAS
+    if max(width, height) > max_size:
+        if width > height:
+            new_width = max_size
+            new_height = int(height * (max_size / width))
+        else:
+            new_height = max_size
+            new_width = int(width * (max_size / height))
+        return image.resize((new_width, new_height), RESAMPLING_FILTER)
     return image
 
 def create_4x6_page(image):
@@ -69,23 +59,31 @@ def index():
 
             logging.info("File received, starting image processing")
 
-            # Open and process the image
+            # Open and resize the image
             input_image = Image.open(file.stream)
+            input_image = resize_and_crop(input_image)
 
-            # Resize and crop to 2x2 passport size
-            passport_photo = resize_and_crop(input_image, PASSPORT_SIZE)
+            # Remove background using a smaller model (u2netp)
+            output_image = remove(input_image, model_name="u2netp")
+
+            # Convert to white background
+            white_bg = Image.new("RGB", output_image.size, (255, 255, 255))
+            white_bg.paste(output_image, mask=output_image.split()[-1])
 
             # Create a 4x6 page with four 2x2 photos
-            page_4x6 = create_4x6_page(passport_photo)
+            page_4x6 = create_4x6_page(white_bg)
 
             # Save the images to bytes buffers
             passport_bytes = io.BytesIO()
-            passport_photo.save(passport_bytes, format="PNG")
+            white_bg.save(passport_bytes, format="PNG")
             passport_bytes.seek(0)
 
             page_bytes = io.BytesIO()
             page_4x6.save(page_bytes, format="PNG")
             page_bytes.seek(0)
+
+            # Clear memory
+            del input_image, output_image, white_bg, page_4x6
 
             # Return the processed images as a zip file
             return send_file(
