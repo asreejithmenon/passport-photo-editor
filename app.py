@@ -107,7 +107,7 @@ def index():
             # Clear memory
             del output_image, passport_photo, white_bg, page_4x6
 
-            # Return the processed images as a zip file
+            # Return both images as a zip file
             return send_file(
                 page_bytes,
                 mimetype="image/png",
