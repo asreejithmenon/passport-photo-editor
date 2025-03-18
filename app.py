@@ -18,13 +18,13 @@ REMOVE_BG_API_KEY = "LpCckzHHasLpTMwYmj1r6uHj"  # Your Remove.bg API key
 PASSPORT_SIZE = (600, 600)  # 2x2 inches at 300 DPI
 PAGE_SIZE = (1800, 1200)    # 4x6 inches at 300 DPI
 
-# Determine the correct resampling filter based on Pillow version
+# Backward compatibility for Pillow
 try:
     from PIL import ImageResampling
     RESAMPLING_FILTER = ImageResampling.LANCZOS
 except ImportError:
-    # For older versions of Pillow (< 9.0.0), use the integer value for LANCZOS
-    RESAMPLING_FILTER = Image.LANCZOS if hasattr(Image, 'LANCZOS') else 1  # 1 is the integer code for LANCZOS
+    # Fallback for older Pillow versions (pre-9.1.0)
+    RESAMPLING_FILTER = Image.LANCZOS  # Use LANCZOS directly if ImageResampling is not available
 
 def remove_background(image_stream):
     """Remove the background using the Remove.bg API."""
@@ -57,4 +57,69 @@ def resize_and_crop(image, max_size=1024):
         return image.resize((new_width, new_height), RESAMPLING_FILTER)
     return image
 
-# ... (rest of your code remains unchanged)
+def create_4x6_page(image):
+    """Create a 4x6 page with four 2x2 passport photos."""
+    page = Image.new("RGB", PAGE_SIZE, (255, 255, 255))  # White background
+    photo_width, photo_height = PASSPORT_SIZE
+
+    # Paste four photos on the page
+    page.paste(image, (0, 0))  # Top-left
+    page.paste(image, (photo_width, 0))  # Top-right
+    page.paste(image, (0, photo_height))  # Bottom-left
+    page.paste(image, (photo_width, photo_height))  # Bottom-right
+
+    return page
+
+@app.route("/", methods=["GET", "POST"])
+def index():
+    if request.method == "POST":
+        try:
+            if "file" not in request.files:
+                return {"status": "error", "message": "No file uploaded"}, 400
+            file = request.files["file"]
+            if file.filename == "":
+                return {"status": "error", "message": "No file selected"}, 400
+
+            logging.info("File received, starting image processing")
+
+            # Remove background using Remove.bg API
+            output_image = remove_background(file.stream)
+
+            # Resize and crop to 2x2 passport size
+            passport_photo = resize_and_crop(output_image)
+
+            # Convert to white background
+            white_bg = Image.new("RGB", passport_photo.size, (255, 255, 255))
+            white_bg.paste(passport_photo, mask=passport_photo.split()[-1])
+
+            # Create a 4x6 page with four 2x2 photos
+            page_4x6 = create_4x6_page(white_bg)
+
+            # Save the images to bytes buffers
+            passport_bytes = io.BytesIO()
+            white_bg.save(passport_bytes, format="PNG")
+            passport_bytes.seek(0)
+
+            page_bytes = io.BytesIO()
+            page_4x6.save(page_bytes, format="PNG")
+            page_bytes.seek(0)
+
+            # Clear memory
+            del output_image, passport_photo, white_bg, page_4x6
+
+            # Return the processed images as a zip file
+            return send_file(
+                page_bytes,
+                mimetype="image/png",
+                as_attachment=True,
+                download_name="4x6_page.png",
+            )
+
+        except Exception as e:
+            logging.error(f"Error processing image: {e}")
+            return {"status": "error", "message": str(e)}, 500
+
+    return render_template("index.html")
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
