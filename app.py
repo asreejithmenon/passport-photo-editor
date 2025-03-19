@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 # Remove.bg API endpoint and key
 REMOVE_BG_API_URL = "https://api.remove.bg/v1.0/removebg"
-REMOVE_BG_API_KEY = "LpCckzHHasLpTMwYmj1r6uHj"  # Your Remove.bg API key
+REMOVE_BG_API_KEY = "LpCckzHHasLpTMwYmj1r6uHj"  # Replace with your Remove.bg API key
 
 # Constants for photo sizes
 PASSPORT_SIZE = (600, 600)  # 2x2 inches at 300 DPI
@@ -25,6 +25,9 @@ try:
 except ImportError:
     # Fallback for older Pillow versions (pre-9.1.0)
     RESAMPLING_FILTER = Image.LANCZOS  # Use LANCZOS directly if ImageResampling is not available
+
+# Temporary storage for processed images
+processed_images = {}
 
 def remove_background(image_stream):
     """Remove the background using the Remove.bg API."""
@@ -44,18 +47,31 @@ def remove_background(image_stream):
         logging.error(f"Error calling Remove.bg API: {e}")
         raise
 
-def resize_and_crop(image, max_size=1024):
-    """Resize the image to a maximum dimension while maintaining aspect ratio."""
+def resize_and_crop(image, size):
+    """Resize and crop the image to the specified size."""
     width, height = image.size
-    if max(width, height) > max_size:
-        if width > height:
-            new_width = max_size
-            new_height = int(height * (max_size / width))
-        else:
-            new_height = max_size
-            new_width = int(width * (max_size / height))
-        return image.resize((new_width, new_height), RESAMPLING_FILTER)
-    return image
+    target_width, target_height = size
+
+    # Calculate aspect ratio
+    target_ratio = target_width / target_height
+    image_ratio = width / height
+
+    # Crop and resize
+    if image_ratio > target_ratio:
+        # Crop width
+        new_width = int(height * target_ratio)
+        left = (width - new_width) // 2
+        right = left + new_width
+        image = image.crop((left, 0, right, height))
+    else:
+        # Crop height
+        new_height = int(width / target_ratio)
+        top = (height - new_height) // 2
+        bottom = top + new_height
+        image = image.crop((0, top, width, bottom))
+
+    # Resize to target size
+    return image.resize(size, RESAMPLING_FILTER)
 
 def create_4x6_page(image):
     """Create a 4x6 page with four 2x2 passport photos."""
@@ -86,7 +102,7 @@ def index():
             output_image = remove_background(file.stream)
 
             # Resize and crop to 2x2 passport size
-            passport_photo = resize_and_crop(output_image)
+            passport_photo = resize_and_crop(output_image, PASSPORT_SIZE)
 
             # Convert to white background
             white_bg = Image.new("RGB", passport_photo.size, (255, 255, 255))
@@ -104,8 +120,9 @@ def index():
             page_4x6.save(page_bytes, format="PNG")
             page_bytes.seek(0)
 
-            # Clear memory
-            del output_image, passport_photo, white_bg, page_4x6
+            # Store the processed images in memory
+            processed_images["single"] = passport_bytes
+            processed_images["four"] = page_bytes
 
             # Return JSON with URLs for both images
             return jsonify({
@@ -123,30 +140,26 @@ def index():
 @app.route("/download/single")
 def download_single():
     """Endpoint to download the single 2x2 photo."""
-    try:
-        return send_file(
-            passport_bytes,
-            mimetype="image/png",
-            as_attachment=True,
-            download_name="2x2_passport_photo.png",
-        )
-    except Exception as e:
-        logging.error(f"Error serving single photo: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
+    if "single" not in processed_images:
+        return "File not found", 404
+    return send_file(
+        processed_images["single"],
+        mimetype="image/png",
+        as_attachment=True,
+        download_name="2x2_passport_photo.png",
+    )
 
 @app.route("/download/four")
 def download_four():
     """Endpoint to download the 4x6 page with four 2x2 photos."""
-    try:
-        return send_file(
-            page_bytes,
-            mimetype="image/png",
-            as_attachment=True,
-            download_name="4x6_page.png",
-        )
-    except Exception as e:
-        logging.error(f"Error serving four photos: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
+    if "four" not in processed_images:
+        return "File not found", 404
+    return send_file(
+        processed_images["four"],
+        mimetype="image/png",
+        as_attachment=True,
+        download_name="4x6_page.png",
+    )
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
