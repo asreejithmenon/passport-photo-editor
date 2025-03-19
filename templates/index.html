@@ -1,80 +1,330 @@
-document.getElementById("processButton").addEventListener("click", async function (event) {
-    event.preventDefault(); // Prevent default form submission
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>US Passport Photo Editor</title>
+    <style>
+        /* General Styles */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
 
-    // Show loading spinner and hide error/success messages
-    document.getElementById("loadingSpinner").style.display = "block";
-    document.getElementById("errorMessage").style.display = "none";
-    document.getElementById("successMessage").style.display = "none";
-    document.getElementById("resultContainer").style.display = "none";
+        .container {
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
 
-    // Get the file from the input
-    const fileInput = document.getElementById("fileInput");
-    const file = fileInput.files[0];
+        h1 {
+            font-size: 28px;
+            color: #333333;
+            margin-bottom: 20px;
+        }
 
-    // Validate file size again (in case the user bypassed the frontend validation)
-    const maxSize = 5 * 1024 * 1024; // 5 MB
-    if (file.size > maxSize) {
-        document.getElementById("errorMessage").innerText = "File size must be less than 5 MB.";
-        document.getElementById("errorMessage").style.display = "block";
-        document.getElementById("loadingSpinner").style.display = "none";
-        return;
-    }
+        p {
+            font-size: 16px;
+            color: #666666;
+            margin-bottom: 30px;
+        }
 
-    // Create a FormData object
-    const formData = new FormData();
-    formData.append("file", file);
+        /* File Input Styling */
+        .file-input {
+            margin-bottom: 20px;
+        }
 
-    try {
-        // Send the file to the server for processing
-        const response = await fetch("/", {
-            method: "POST",
-            body: formData,
+        .file-input input[type="file"] {
+            display: none;
+        }
+
+        .file-input label {
+            display: inline-block;
+            background-color: #007bff;
+            color: #ffffff;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        .file-input label:hover {
+            background-color: #0056b3;
+        }
+
+        /* Button Styling */
+        button {
+            background-color: #28a745;
+            color: #ffffff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 20px;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        /* Loading Spinner */
+        .loading {
+            display: none;
+            margin-top: 20px;
+            font-size: 16px;
+            color: #333333;
+        }
+
+        /* Error Message */
+        .error {
+            display: none;
+            margin-top: 20px;
+            font-size: 16px;
+            color: #dc3545;
+        }
+
+        /* Success Message */
+        .success {
+            display: none;
+            margin-top: 20px;
+            font-size: 16px;
+            color: #28a745;
+        }
+
+        /* Processed Image Styling */
+        #resultContainer {
+            display: none;
+            margin-top: 30px;
+        }
+
+        #processedImage {
+            max-width: 100%;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Download Links Styling */
+        .download-links {
+            margin-top: 20px;
+        }
+
+        .download-links a {
+            display: inline-block;
+            margin: 10px;
+            padding: 12px 24px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        .download-links .single-photo {
+            background-color: #007bff;
+            color: #ffffff;
+        }
+
+        .download-links .single-photo:hover {
+            background-color: #0056b3;
+        }
+
+        .download-links .four-photos {
+            background-color: #28a745;
+            color: #ffffff;
+        }
+
+        .download-links .four-photos:hover {
+            background-color: #218838;
+        }
+
+        /* Donation Note */
+        .donation-note {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666666;
+        }
+
+        /* Stripe Donation Button */
+        .donation-buttons {
+            margin-top: 20px;
+        }
+
+        .donation-buttons a {
+            display: inline-block;
+            margin: 10px;
+            padding: 12px 24px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        .donation-buttons .stripe {
+            background-color: #635bff;
+            color: #ffffff;
+        }
+
+        .donation-buttons .stripe:hover {
+            background-color: #4a43d1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>US Passport Photo Editor</h1>
+        <p>Upload your photo to remove the background and replace it with white, ensuring it meets US passport requirements.</p>
+
+        <!-- File Input -->
+        <div class="file-input">
+            <input type="file" name="file" id="fileInput" accept="image/*" required onchange="validateFileSize(this)">
+            <label for="fileInput">Choose a Photo</label>
+        </div>
+
+        <!-- Upload and Process Button -->
+        <button type="submit" id="processButton">Upload and Process Photo</button>
+
+        <!-- Loading Spinner -->
+        <div class="loading" id="loadingSpinner">
+            <p>Processing your photo... Please wait.</p>
+        </div>
+
+        <!-- Error Message -->
+        <div class="error" id="errorMessage">
+            <p>An error occurred while processing the photo. Please try again.</p>
+        </div>
+
+        <!-- Success Message -->
+        <div class="success" id="successMessage">
+            <p>Photo processed successfully! Download your images below.</p>
+        </div>
+
+        <!-- Display Processed Image -->
+        <div id="resultContainer">
+            <h2>Processed Photo</h2>
+            <img id="processedImage" src="" alt="Processed Photo">
+            <br>
+
+            <!-- Download Links -->
+            <div class="download-links">
+                <a id="downloadSingle" href="#" download="2x2_passport_photo.png" class="single-photo">Download Single 2x2 Photo</a>
+                <a id="downloadFour" href="#" download="4x6_page.png" class="four-photos">Download 4x6 Page with Four 2x2 Photos</a>
+            </div>
+
+            <!-- Donation Note -->
+            <div class="donation-note">
+                <p>You can download the photos for free, but we would appreciate a <strong>donation of any amount</strong> that you are comfortable with to keep the website up and running and operational.</p>
+            </div>
+
+            <!-- Stripe Donation Button -->
+            <div class="donation-buttons">
+                <a href="https://buy.stripe.com/4gwaIo8OK7EN6ZyeUV" class="stripe" target="_blank">Donate via Stripe</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Validate file size (max 5 MB)
+        function validateFileSize(input) {
+            const maxSize = 5 * 1024 * 1024; // 5 MB
+            if (input.files[0].size > maxSize) {
+                alert("File size must be less than 5 MB.");
+                input.value = ""; // Clear the file input
+            }
+        }
+
+        // Handle form submission
+        document.getElementById("processButton").addEventListener("click", async function (event) {
+            event.preventDefault(); // Prevent default form submission
+
+            // Show loading spinner and hide error/success messages
+            document.getElementById("loadingSpinner").style.display = "block";
+            document.getElementById("errorMessage").style.display = "none";
+            document.getElementById("successMessage").style.display = "none";
+            document.getElementById("resultContainer").style.display = "none";
+
+            // Get the file from the input
+            const fileInput = document.getElementById("fileInput");
+            const file = fileInput.files[0];
+
+            // Validate file size again (in case the user bypassed the frontend validation)
+            const maxSize = 5 * 1024 * 1024; // 5 MB
+            if (file.size > maxSize) {
+                document.getElementById("errorMessage").innerText = "File size must be less than 5 MB.";
+                document.getElementById("errorMessage").style.display = "block";
+                document.getElementById("loadingSpinner").style.display = "none";
+                return;
+            }
+
+            // Create a FormData object
+            const formData = new FormData();
+            formData.append("file", file);
+
+            try {
+                // Send the file to the server for processing
+                const response = await fetch("/", {
+                    method: "POST",
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text(); // Get the error message from the server
+                    throw new Error(`Server error: ${errorText}`);
+                }
+
+                const data = await response.json();
+
+                if (data.status !== "success") {
+                    throw new Error(data.message || "An error occurred. Please try again.");
+                }
+
+                // Set the download links
+                const downloadSingle = document.getElementById("downloadSingle");
+                const downloadFour = document.getElementById("downloadFour");
+                downloadSingle.href = data.single_photo_url;
+                downloadFour.href = data.four_photos_url;
+
+                // Fetch the single 2x2 photo for display
+                const singlePhotoResponse = await fetch(data.single_photo_url);
+                if (!singlePhotoResponse.ok) {
+                    throw new Error("Failed to fetch the single 2x2 photo.");
+                }
+                const singlePhotoBlob = await singlePhotoResponse.blob();
+                const singlePhotoUrl = URL.createObjectURL(singlePhotoBlob);
+
+                // Display the processed image (single 2x2 photo)
+                const processedImage = document.getElementById("processedImage");
+                processedImage.src = singlePhotoUrl;
+
+                // Revoke the object URL when the image is no longer needed
+                processedImage.onload = () => {
+                    URL.revokeObjectURL(singlePhotoUrl);
+                };
+
+                // Show the result container and success message
+                document.getElementById("resultContainer").style.display = "block";
+                document.getElementById("successMessage").style.display = "block";
+            } catch (error) {
+                console.error("Error:", error);
+                // Show error message
+                document.getElementById("errorMessage").innerText = error.message || "An error occurred. Please try again.";
+                document.getElementById("errorMessage").style.display = "block";
+            } finally {
+                // Hide loading spinner
+                document.getElementById("loadingSpinner").style.display = "none";
+            }
         });
-
-        if (!response.ok) {
-            const errorText = await response.text(); // Get the error message from the server
-            throw new Error(`Server error: ${errorText}`);
-        }
-
-        const data = await response.json();
-
-        if (data.status !== "success") {
-            throw new Error(data.message || "An error occurred. Please try again.");
-        }
-
-        // Set the download links
-        const downloadSingle = document.getElementById("downloadSingle");
-        const downloadFour = document.getElementById("downloadFour");
-        downloadSingle.href = data.single_photo_url;
-        downloadFour.href = data.four_photos_url;
-
-        // Fetch the single 2x2 photo for display
-        const singlePhotoResponse = await fetch(data.single_photo_url);
-        if (!singlePhotoResponse.ok) {
-            throw new Error("Failed to fetch the single 2x2 photo.");
-        }
-        const singlePhotoBlob = await singlePhotoResponse.blob();
-        const singlePhotoUrl = URL.createObjectURL(singlePhotoBlob);
-
-        // Display the processed image (single 2x2 photo)
-        const processedImage = document.getElementById("processedImage");
-        processedImage.src = singlePhotoUrl;
-
-        // Revoke the object URL when the image is no longer needed
-        processedImage.onload = () => {
-            URL.revokeObjectURL(singlePhotoUrl);
-        };
-
-        // Show the result container and success message
-        document.getElementById("resultContainer").style.display = "block";
-        document.getElementById("successMessage").style.display = "block";
-    } catch (error) {
-        console.error("Error:", error);
-        // Show error message
-        document.getElementById("errorMessage").innerText = error.message || "An error occurred. Please try again.";
-        document.getElementById("errorMessage").style.display = "block";
-    } finally {
-        // Hide loading spinner
-        document.getElementById("loadingSpinner").style.display = "none";
-    }
-});
+    </script>
+</body>
+</html>
