@@ -4,6 +4,7 @@ from PIL import Image
 import io
 import logging
 import requests
+import uuid
 
 app = Flask(__name__)
 
@@ -120,15 +121,19 @@ def index():
             page_4x6.save(page_bytes, format="PNG")
             page_bytes.seek(0)
 
+            # Generate unique IDs for the images
+            single_photo_id = str(uuid.uuid4())
+            four_photos_id = str(uuid.uuid4())
+
             # Store the processed images in memory
-            processed_images["single"] = passport_bytes
-            processed_images["four"] = page_bytes
+            processed_images[single_photo_id] = passport_bytes.getvalue()
+            processed_images[four_photos_id] = page_bytes.getvalue()
 
             # Return JSON with URLs for both images
             return jsonify({
                 "status": "success",
-                "single_photo_url": "/download/single",
-                "four_photos_url": "/download/four",
+                "single_photo_url": f"/download/{single_photo_id}",
+                "four_photos_url": f"/download/{four_photos_id}",
             })
 
         except Exception as e:
@@ -137,28 +142,27 @@ def index():
 
     return render_template("index.html")
 
-@app.route("/download/single")
-def download_single():
-    """Endpoint to download the single 2x2 photo."""
-    if "single" not in processed_images:
+@app.route("/download/<image_id>")
+def download_image(image_id):
+    """Endpoint to download the processed image."""
+    if image_id not in processed_images:
         return "File not found", 404
-    return send_file(
-        processed_images["single"],
-        mimetype="image/png",
-        as_attachment=True,
-        download_name="2x2_passport_photo.png",
-    )
 
-@app.route("/download/four")
-def download_four():
-    """Endpoint to download the 4x6 page with four 2x2 photos."""
-    if "four" not in processed_images:
-        return "File not found", 404
+    # Convert the stored bytes back to a BytesIO object
+    image_bytes = io.BytesIO(processed_images[image_id])
+    image_bytes.seek(0)
+
+    # Determine the filename based on the image ID
+    if "single" in image_id:
+        download_name = "2x2_passport_photo.png"
+    else:
+        download_name = "4x6_page.png"
+
     return send_file(
-        processed_images["four"],
+        image_bytes,
         mimetype="image/png",
         as_attachment=True,
-        download_name="4x6_page.png",
+        download_name=download_name,
     )
 
 if __name__ == "__main__":
