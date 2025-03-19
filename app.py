@@ -1,5 +1,5 @@
 import os
-from flask import Flask, request, send_file, render_template
+from flask import Flask, request, send_file, render_template, jsonify
 from PIL import Image
 import io
 import logging
@@ -75,10 +75,10 @@ def index():
     if request.method == "POST":
         try:
             if "file" not in request.files:
-                return {"status": "error", "message": "No file uploaded"}, 400
+                return jsonify({"status": "error", "message": "No file uploaded"}), 400
             file = request.files["file"]
             if file.filename == "":
-                return {"status": "error", "message": "No file selected"}, 400
+                return jsonify({"status": "error", "message": "No file selected"}), 400
 
             logging.info("File received, starting image processing")
 
@@ -107,19 +107,46 @@ def index():
             # Clear memory
             del output_image, passport_photo, white_bg, page_4x6
 
-            # Return both images as a zip file
-            return send_file(
-                page_bytes,
-                mimetype="image/png",
-                as_attachment=True,
-                download_name="4x6_page.png",
-            )
+            # Return JSON with URLs for both images
+            return jsonify({
+                "status": "success",
+                "single_photo_url": "/download/single",
+                "four_photos_url": "/download/four",
+            })
 
         except Exception as e:
             logging.error(f"Error processing image: {e}")
-            return {"status": "error", "message": str(e)}, 500
+            return jsonify({"status": "error", "message": str(e)}), 500
 
     return render_template("index.html")
+
+@app.route("/download/single")
+def download_single():
+    """Endpoint to download the single 2x2 photo."""
+    try:
+        return send_file(
+            passport_bytes,
+            mimetype="image/png",
+            as_attachment=True,
+            download_name="2x2_passport_photo.png",
+        )
+    except Exception as e:
+        logging.error(f"Error serving single photo: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route("/download/four")
+def download_four():
+    """Endpoint to download the 4x6 page with four 2x2 photos."""
+    try:
+        return send_file(
+            page_bytes,
+            mimetype="image/png",
+            as_attachment=True,
+            download_name="4x6_page.png",
+        )
+    except Exception as e:
+        logging.error(f"Error serving four photos: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
