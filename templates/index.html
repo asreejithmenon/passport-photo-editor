@@ -29,7 +29,6 @@ document.getElementById("processButton").addEventListener("click", async functio
         const response = await fetch("/", {
             method: "POST",
             body: formData,
-            signal: AbortSignal.timeout(30000), // 30-second timeout
         });
 
         if (!response.ok) {
@@ -49,9 +48,14 @@ document.getElementById("processButton").addEventListener("click", async functio
         downloadSingle.href = data.single_photo_url;
         downloadFour.href = data.four_photos_url;
 
+        // Fetch the single 2x2 photo for display
+        const singlePhotoResponse = await fetch(data.single_photo_url);
+        const singlePhotoBlob = await singlePhotoResponse.blob();
+        const singlePhotoUrl = URL.createObjectURL(singlePhotoBlob);
+
         // Display the processed image (single 2x2 photo)
         const processedImage = document.getElementById("processedImage");
-        processedImage.src = data.single_photo_url;
+        processedImage.src = singlePhotoUrl;
 
         // Show the result container and success message
         document.getElementById("resultContainer").style.display = "block";
