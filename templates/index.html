@@ -50,12 +50,20 @@ document.getElementById("processButton").addEventListener("click", async functio
 
         // Fetch the single 2x2 photo for display
         const singlePhotoResponse = await fetch(data.single_photo_url);
+        if (!singlePhotoResponse.ok) {
+            throw new Error("Failed to fetch the single 2x2 photo.");
+        }
         const singlePhotoBlob = await singlePhotoResponse.blob();
         const singlePhotoUrl = URL.createObjectURL(singlePhotoBlob);
 
         // Display the processed image (single 2x2 photo)
         const processedImage = document.getElementById("processedImage");
         processedImage.src = singlePhotoUrl;
+
+        // Revoke the object URL when the image is no longer needed
+        processedImage.onload = () => {
+            URL.revokeObjectURL(singlePhotoUrl);
+        };
 
         // Show the result container and success message
         document.getElementById("resultContainer").style.display = "block";
